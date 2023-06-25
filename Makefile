@@ -1,17 +1,13 @@
+servers ?= 10
+
 build_equilib:
 	go build -o bin/equilib  ./cmd/equilib
 
 run_lb:build_equilib
 	./bin/equilib
 
-build_server1:
-	go build -o bin/server1  ./cmd/server1
+build_servers:
+	go build -o bin/servers  ./cmd/server
 
-run_1:build_server1
-	./bin/server1
-
-build_server2:
-	go build -o bin/server2  ./cmd/server2
-
-run_2:build_server2
-	./bin/server2
+run_servers:build_servers
+	./bin/servers --servers $(servers)

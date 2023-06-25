@@ -1,6 +1,8 @@
 package ringBuffer
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+)
 
 type RingBuffer struct {
 	size    int
@@ -9,7 +11,7 @@ type RingBuffer struct {
 }
 
 func New(size int) *RingBuffer {
-	return &RingBuffer{size: size, servers: make([]string, size)}
+	return &RingBuffer{size: size, servers: make([]string, 0, size)}
 }
 
 func (r *RingBuffer) Next() string {
