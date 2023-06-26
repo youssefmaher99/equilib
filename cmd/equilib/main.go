@@ -1,13 +1,77 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"net"
+	"os"
+	"strconv"
+	"strings"
 
 	"github.com/youssefmaher99/equilib/internal/server"
 )
 
+type ServersJSON struct {
+	Servers []string `json="servers"`
+}
+
+func loadServers(filename string) []string {
+	file, err := os.Open(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	file_byte_value, err := ioutil.ReadAll(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var servers ServersJSON
+	json.Unmarshal(file_byte_value, &servers)
+
+	err = parseIpAndPort(servers.Servers)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return servers.Servers
+}
+
+func parseIpAndPort(addresses []string) error {
+
+	type pair struct {
+		ip   string
+		port string
+	}
+
+	pairs := make([]pair, 0, len(addresses))
+	for _, address := range addresses {
+		vals := strings.Split(address, ":")
+		pairs = append(pairs, pair{ip: vals[0], port: vals[1]})
+	}
+
+	for _, pair := range pairs {
+		valid := net.ParseIP(pair.ip)
+		if valid == nil {
+			return fmt.Errorf("invalid ip address : %s", pair.ip)
+		}
+		val, err := strconv.Atoi(pair.port)
+		if err != nil {
+			return fmt.Errorf("invalid port number : %s", pair.port)
+		}
+		if val > 65535 || val < 1 {
+			return fmt.Errorf("invalid port number : %s", pair.port)
+
+		}
+	}
+	return nil
+}
+
 func main() {
-	servers_list := []string{"127.0.0.1:5001", "127.0.0.1:5002"}
+	servers_list := loadServers("servers.json")
 	s := server.New("127.0.0.1:8080", 2, servers_list)
 	log.Fatal(s.Start())
 }

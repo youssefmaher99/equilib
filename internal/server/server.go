@@ -15,7 +15,6 @@ type server struct {
 
 func New(listenAddr string, size int, servers []string) *server {
 	rng := ringBuffer.New(size)
-	fmt.Println(servers)
 	rng.Populate(servers)
 	return &server{listenAddr: listenAddr, rngBuffer: rng}
 }
@@ -25,8 +24,7 @@ func (s *server) intercept() http.Handler {
 		log.Println("Intercept")
 
 		server := s.rngBuffer.Next()
-		fmt.Println("http://" + server + "/ping")
-		res, err := http.Get("http://" + server + "/ping")
+		res, err := http.Get(server + r.URL.String())
 		if err != nil {
 			log.Println(err)
 		}

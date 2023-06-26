@@ -18,6 +18,7 @@ func New(listenAddr string) *server {
 
 func (s *server) pongHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Incoming Request to [%s]", s.listenAddr)
 		msg := "pong from " + s.listenAddr + "\n"
 		w.Write([]byte(msg))
 	})
@@ -33,10 +34,10 @@ func spawnServer(address string) {
 	s.Start()
 }
 
-//TODO graceful shutdown
+//TODO graceful shutdown to make sure all servers ports are closed
 
 func main() {
-	num_of_servers := flag.Int("servers", 10, "number of servers to spawn on localhost with port starting from 5001")
+	num_of_servers := flag.Int("servers", 10, "number of servers to spawn on localhost with port starting from 5000")
 	flag.Parse()
 	wg := sync.WaitGroup{}
 	wg.Add(*num_of_servers)
