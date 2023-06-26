@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -23,8 +23,7 @@ func loadServers(filename string) []string {
 		log.Fatal(err)
 	}
 	defer file.Close()
-
-	file_byte_value, err := ioutil.ReadAll(file)
+	file_byte_value, err := io.ReadAll(file)
 	if err != nil {
 		log.Fatal(err)
 	}
