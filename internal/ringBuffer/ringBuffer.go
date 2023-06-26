@@ -1,6 +1,7 @@
 package ringBuffer
 
 import (
+	"fmt"
 	"sync/atomic"
 )
 
@@ -20,6 +21,12 @@ func (r *RingBuffer) Next() string {
 	return r.servers[index]
 }
 
+// TODO : ring buffer shouldn't be the one populating equilib with the servers
 func (r *RingBuffer) Populate(servers []string) {
+	fmt.Println("List of loaded addresses")
+	fmt.Println("------------------------")
+	for i := 0; i < len(servers); i++ {
+		fmt.Println(servers[i])
+	}
 	r.servers = append(r.servers, servers...)
 }

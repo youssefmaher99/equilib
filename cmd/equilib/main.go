@@ -29,12 +29,21 @@ func loadServers(filename string) []string {
 	}
 
 	var servers ServersJSON
-	json.Unmarshal(file_byte_value, &servers)
+	err = json.Unmarshal(file_byte_value, &servers)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	err = parseIpAndPort(servers.Servers)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// add http:// to all addresses
+	for i := 0; i < len(servers.Servers); i++ {
+		servers.Servers[i] = "http://" + servers.Servers[i]
+	}
+	fmt.Println(servers.Servers)
 
 	return servers.Servers
 }
@@ -71,6 +80,6 @@ func parseIpAndPort(addresses []string) error {
 
 func main() {
 	servers_list := loadServers("servers.json")
-	s := server.New("127.0.0.1:8080", 2, servers_list)
+	s := server.New("127.0.0.1:8080", len(servers_list), servers_list)
 	log.Fatal(s.Start())
 }
