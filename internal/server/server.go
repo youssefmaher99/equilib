@@ -1,7 +1,7 @@
 package server
 
 import (
-	"fmt"
+	"io"
 	"log"
 	"net/http"
 
@@ -24,12 +24,22 @@ func (s *server) intercept() http.Handler {
 		log.Println("Intercept")
 
 		server := s.rngBuffer.Next()
-		res, err := http.Get(server + r.URL.String())
+		response, err := http.Get(server + r.URL.String())
 		if err != nil {
 			log.Println(err)
 		}
-		fmt.Println(res)
-		w.Write([]byte("hello"))
+
+		// forward response headers coming from a server
+		for key, val := range response.Header {
+			w.Header().Add(key, val[0])
+		}
+
+		// forward response body coming from a server
+		response_body, err := io.ReadAll(response.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+		w.Write(response_body)
 	})
 }
 
