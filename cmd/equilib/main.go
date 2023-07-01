@@ -43,7 +43,6 @@ func loadServers(filename string) []string {
 	for i := 0; i < len(servers.Servers); i++ {
 		servers.Servers[i] = "http://" + servers.Servers[i]
 	}
-	fmt.Println(servers.Servers)
 
 	return servers.Servers
 }

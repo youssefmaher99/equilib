@@ -24,6 +24,7 @@ func (s *server) intercept() http.Handler {
 		log.Println("Intercept")
 
 		server := s.rngBuffer.Next()
+		// TODO : better error handling (mark server down - forward error coming from server to client)
 		response, err := http.Get(server + r.URL.String())
 		if err != nil {
 			log.Println(err)
