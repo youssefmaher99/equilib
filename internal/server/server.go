@@ -1,8 +1,10 @@
 package server
 
 import (
-	"io"
+	"context"
+	"fmt"
 	"log"
+	"net"
 	"net/http"
 
 	"github.com/youssefmaher99/equilib/internal/connectionPool"
@@ -31,31 +33,52 @@ func (s *server) intercept() http.Handler {
 		log.Println("Intercept")
 
 		server := s.rngBuffer.Next()
-
-		// conn := pool.get(server)
 		// get conn from pool or create new conn
-		// create client
-		// define new transport with the conn
-		// send request
-		// release conn back to pool
-
-		// TODO : better error handling (mark server down - forward error coming from server to client)
-		response, err := http.Get("http://" + server + r.URL.String())
+		conn, err := s.pool.Get(server)
 		if err != nil {
-			log.Println(err)
+			panic(err)
+		}
+		// create client
+		dialFunc := func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return conn, nil
 		}
 
-		// forward response headers coming from a server
-		for key, val := range response.Header {
-			w.Header().Add(key, val[0])
+		// Create an http.Transport that uses the custom DialContext function.
+		transport := &http.Transport{
+			DialContext: dialFunc,
 		}
 
-		// forward response body coming from a server
-		response_body, err := io.ReadAll(response.Body)
+		// Create an http.Client using the custom transport.
+		client := &http.Client{
+			Transport: transport,
+		}
+
+		// Make an HTTP request using the custom client.
+		resp, err := client.Get("http://" + server + "/ping")
 		if err != nil {
 			log.Fatal(err)
 		}
-		w.Write(response_body)
+		fmt.Println(resp)
+
+		// TODO release conn back to pool
+
+		// TODO : better error handling (mark server down - forward error coming from server to client)
+		// response, err := http.Get("http://" + server + r.URL.String())
+		// if err != nil {
+		// 	log.Println(err)
+		// }
+
+		// // forward response headers coming from a server
+		// for key, val := range response.Header {
+		// 	w.Header().Add(key, val[0])
+		// }
+
+		// // forward response body coming from a server
+		// response_body, err := io.ReadAll(response.Body)
+		// if err != nil {
+		// 	log.Fatal(err)
+		// }
+		// w.Write(response_body)
 	})
 }
 

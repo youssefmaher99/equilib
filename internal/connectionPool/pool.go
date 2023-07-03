@@ -16,7 +16,7 @@ type pool struct {
 
 func New() *pool {
 	// TODO : change later
-	return &pool{maxIdleConnsPerHost: 10}
+	return &pool{maxIdleConnsPerHost: 3, mu: &sync.RWMutex{}}
 }
 
 func (p *pool) Get(server string) (net.Conn, error) {
@@ -62,11 +62,13 @@ func (p *pool) Populate(servers []string) error {
 			h_c.connections = append(h_c.connections, conn)
 		}
 		p.connections[server] = &h_c
-		fmt.Println(h_c.connections)
+		p.totalAvailableWarmConnections++
 	}
+	fmt.Println("----- Pool populated succesfuly -----")
 	return nil
 }
 func (p *pool) OpenNewTcpConnection(server string) (net.Conn, error) {
+	fmt.Println("********************** New tcp connections **********************")
 	// TODO : custom error if server is down
 	return net.Dial("tcp", server)
 }
