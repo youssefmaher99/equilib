@@ -5,27 +5,42 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/youssefmaher99/equilib/internal/connectionPool"
 	"github.com/youssefmaher99/equilib/internal/ringBuffer"
 )
 
 type server struct {
 	listenAddr string
 	rngBuffer  *ringBuffer.RingBuffer
+	pool       connectionPool.ConnectionPooler
 }
 
 func New(listenAddr string, size int, servers []string) *server {
 	rng := ringBuffer.New(size)
 	rng.Populate(servers)
-	return &server{listenAddr: listenAddr, rngBuffer: rng}
+
+	pool := connectionPool.New()
+	pool.Populate(servers)
+
+	return &server{listenAddr: listenAddr, rngBuffer: rng, pool: pool}
 }
 
 func (s *server) intercept() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		log.Println("Intercept")
 
 		server := s.rngBuffer.Next()
+
+		// conn := pool.get(server)
+		// get conn from pool or create new conn
+		// create client
+		// define new transport with the conn
+		// send request
+		// release conn back to pool
+
 		// TODO : better error handling (mark server down - forward error coming from server to client)
-		response, err := http.Get(server + r.URL.String())
+		response, err := http.Get("http://" + server + r.URL.String())
 		if err != nil {
 			log.Println(err)
 		}

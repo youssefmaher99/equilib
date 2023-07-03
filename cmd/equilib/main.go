@@ -40,10 +40,6 @@ func loadServers(filename string) []string {
 	}
 
 	// add http:// to all addresses
-	for i := 0; i < len(servers.Servers); i++ {
-		servers.Servers[i] = "http://" + servers.Servers[i]
-	}
-
 	return servers.Servers
 }
 
