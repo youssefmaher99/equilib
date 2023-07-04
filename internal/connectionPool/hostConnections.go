@@ -18,6 +18,7 @@ func (h *hostConnections) Get() (net.Conn, error) {
 	return nil, fmt.Errorf("all connections are in use")
 }
 
-func (h *hostConnections) Put() {
-
+func (h *hostConnections) Put(conn net.Conn) error {
+	h.connections = append(h.connections, conn)
+	return nil
 }

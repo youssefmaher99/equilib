@@ -36,8 +36,9 @@ func (p *pool) Get(server string) (net.Conn, error) {
 	p.totalAvailableWarmConnections--
 	return conn, nil
 }
-func (p *pool) Release(conn net.Conn) error {
-	return nil
+func (p *pool) Release(conn net.Conn, server string) error {
+	err := p.connections[server].Put(conn)
+	return err
 }
 func (p *pool) Discard(conn net.Conn) error {
 	return nil
@@ -68,7 +69,7 @@ func (p *pool) Populate(servers []string) error {
 	return nil
 }
 func (p *pool) OpenNewTcpConnection(server string) (net.Conn, error) {
-	fmt.Println("********************** New tcp connections **********************")
+	fmt.Println("********************** Opening new tcp connection **********************")
 	// TODO : custom error if server is down
 	return net.Dial("tcp", server)
 }

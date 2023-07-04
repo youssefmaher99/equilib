@@ -53,6 +53,7 @@ func (s *server) intercept() http.Handler {
 			Transport: transport,
 		}
 
+		// TODO : make HTTP method agnostic
 		// Make an HTTP request using the custom client.
 		resp, err := client.Get("http://" + server + "/ping")
 		if err != nil {
@@ -61,6 +62,9 @@ func (s *server) intercept() http.Handler {
 		fmt.Println(resp)
 
 		// TODO release conn back to pool
+		// s.pool.Release(conn, server)
+
+		w.Write([]byte("hello"))
 
 		// TODO : better error handling (mark server down - forward error coming from server to client)
 		// response, err := http.Get("http://" + server + r.URL.String())
