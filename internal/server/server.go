@@ -2,9 +2,8 @@ package server
 
 import (
 	"context"
-	"fmt"
+	"io"
 	"log"
-	"net"
 	"net/http"
 
 	"github.com/youssefmaher99/equilib/internal/connectionPool"
@@ -14,7 +13,32 @@ import (
 type server struct {
 	listenAddr string
 	rngBuffer  *ringBuffer.RingBuffer
-	pool       connectionPool.ConnectionPooler
+	client     *http.Client
+}
+
+type customTransport struct {
+	pool              connectionPool.ConnectionPooler
+	originalTransport http.RoundTripper
+}
+
+func (c *customTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	// get connection from pool
+	conn, err := c.pool.Get(r.Host)
+	if err != nil {
+		panic(err)
+	}
+
+	// set tcpConn with the new connection from the pool which will be read in the defaultTransport and use the connection
+	r = r.WithContext(context.WithValue(r.Context(), "tcpConn", conn))
+	resp, err := http.DefaultTransport.RoundTrip(r)
+	if err != nil {
+		return nil, err
+	}
+
+	// release conenction back to pool
+	defer c.pool.Release(conn, r.Host)
+
+	return resp, nil
 }
 
 func New(listenAddr string, size int, servers []string) *server {
@@ -24,65 +48,31 @@ func New(listenAddr string, size int, servers []string) *server {
 	pool := connectionPool.New()
 	pool.Populate(servers)
 
-	return &server{listenAddr: listenAddr, rngBuffer: rng, pool: pool}
+	newCustomTransport := customTransport{pool: pool, originalTransport: http.DefaultTransport}
+	client := &http.Client{Transport: &newCustomTransport}
+	return &server{listenAddr: listenAddr, rngBuffer: rng, client: client}
 }
 
 func (s *server) intercept() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		log.Println("Intercept")
-
 		server := s.rngBuffer.Next()
-		// get conn from pool or create new conn
-		conn, err := s.pool.Get(server)
+
+		request, err := http.NewRequest(r.Method, "http://"+server+"/ping", nil)
 		if err != nil {
 			panic(err)
 		}
-		// create client
-		dialFunc := func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return conn, nil
-		}
 
-		// Create an http.Transport that uses the custom DialContext function.
-		transport := &http.Transport{
-			DialContext: dialFunc,
-		}
-
-		// Create an http.Client using the custom transport.
-		client := &http.Client{
-			Transport: transport,
-		}
-
-		// TODO : make HTTP method agnostic
-		// Make an HTTP request using the custom client.
-		resp, err := client.Get("http://" + server + "/ping")
+		resp, err := s.client.Do(request)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
-		fmt.Println(resp)
 
-		// TODO release conn back to pool
-		// s.pool.Release(conn, server)
-
-		w.Write([]byte("hello"))
-
-		// TODO : better error handling (mark server down - forward error coming from server to client)
-		// response, err := http.Get("http://" + server + r.URL.String())
-		// if err != nil {
-		// 	log.Println(err)
-		// }
-
-		// // forward response headers coming from a server
-		// for key, val := range response.Header {
-		// 	w.Header().Add(key, val[0])
-		// }
-
-		// // forward response body coming from a server
-		// response_body, err := io.ReadAll(response.Body)
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
-		// w.Write(response_body)
+		resp_body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			panic(err)
+		}
+		w.Write(resp_body)
 	})
 }
 

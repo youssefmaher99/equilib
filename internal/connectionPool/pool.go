@@ -16,11 +16,10 @@ type pool struct {
 
 func New() *pool {
 	// TODO : change later
-	return &pool{maxIdleConnsPerHost: 3, mu: &sync.RWMutex{}}
+	return &pool{maxIdleConnsPerHost: 20, mu: &sync.RWMutex{}}
 }
 
 func (p *pool) Get(server string) (net.Conn, error) {
-
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -33,11 +32,19 @@ func (p *pool) Get(server string) (net.Conn, error) {
 	if err != nil {
 		return p.OpenNewTcpConnection(server)
 	}
+
+	err = p.ConnectionIsValid(conn)
+	if err != nil {
+		return p.OpenNewTcpConnection(server)
+	}
 	p.totalAvailableWarmConnections--
 	return conn, nil
 }
 func (p *pool) Release(conn net.Conn, server string) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	err := p.connections[server].Put(conn)
+	p.totalAvailableWarmConnections++
 	return err
 }
 func (p *pool) Discard(conn net.Conn) error {
@@ -45,6 +52,11 @@ func (p *pool) Discard(conn net.Conn) error {
 }
 func (p *pool) Clear() error {
 	return nil
+}
+
+func (p *pool) ConnectionIsValid(conn net.Conn) error {
+	_, err := conn.Write([]byte("1"))
+	return err
 }
 
 func (p *pool) Populate(servers []string) error {
@@ -69,7 +81,7 @@ func (p *pool) Populate(servers []string) error {
 	return nil
 }
 func (p *pool) OpenNewTcpConnection(server string) (net.Conn, error) {
-	fmt.Println("********************** Opening new tcp connection **********************")
+	// fmt.Println("********************** Opening new tcp connection **********************")
 	// TODO : custom error if server is down
 	return net.Dial("tcp", server)
 }
