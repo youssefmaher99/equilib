@@ -50,6 +50,7 @@ func New(listenAddr string, size int, servers []string) *server {
 
 	newCustomTransport := customTransport{pool: pool, originalTransport: http.DefaultTransport}
 	client := &http.Client{Transport: &newCustomTransport}
+
 	return &server{listenAddr: listenAddr, rngBuffer: rng, client: client}
 }
 
@@ -72,6 +73,11 @@ func (s *server) intercept() http.Handler {
 		if err != nil {
 			panic(err)
 		}
+
+		for key, val := range resp.Header {
+			w.Header().Add(key, val[0])
+		}
+
 		w.Write(resp_body)
 	})
 }
