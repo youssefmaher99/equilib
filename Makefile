@@ -11,3 +11,6 @@ build_servers:
 
 run_servers:build_servers
 	./bin/servers --servers $(servers)
+
+test:
+	go test -v ./...
