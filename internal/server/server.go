@@ -41,11 +41,11 @@ func (c *customTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
-func New(listenAddr string, size int, servers []string) *server {
+func New(listenAddr string, size int, servers []string, poolSize int) *server {
 	rng := ringBuffer.New(size)
 	rng.Populate(servers)
 
-	pool := connectionPool.New()
+	pool := connectionPool.New(poolSize)
 	pool.Populate(servers)
 
 	newCustomTransport := customTransport{pool: pool, originalTransport: http.DefaultTransport}
@@ -58,8 +58,7 @@ func (s *server) intercept() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		server := s.rngBuffer.Next()
-
-		request, err := http.NewRequest(r.Method, "http://"+server+"/ping", nil)
+		request, err := http.NewRequest(r.Method, "http://"+server+r.RequestURI, nil)
 		if err != nil {
 			panic(err)
 		}

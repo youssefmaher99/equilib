@@ -14,9 +14,9 @@ type pool struct {
 	totalAvailableWarmConnections int
 }
 
-func New() *pool {
+func New(size int) *pool {
 	// TODO : change later
-	return &pool{maxIdleConnsPerHost: 5, mu: &sync.RWMutex{}}
+	return &pool{maxIdleConnsPerHost: size, mu: &sync.RWMutex{}}
 }
 
 func (p *pool) Get(host string) (net.Conn, error) {
@@ -63,12 +63,11 @@ func (p *pool) Release(conn net.Conn, host string) error {
 
 func (p *pool) Discard(conn net.Conn, host string) {
 	fmt.Println("Connection discarded")
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
 	for idx, connVal := range p.connections[host].connections {
 		if connVal == conn {
+			fmt.Println("before", len(p.connections[host].connections))
 			p.connections[host].connections = removeSliceElement(p.connections[host].connections, idx)
+			fmt.Println("after", len(p.connections[host].connections))
 			break
 		}
 	}
@@ -114,6 +113,17 @@ func (p *pool) OpenNewTcpConnection(host string) (net.Conn, error) {
 }
 
 func removeSliceElement(arr []net.Conn, index int) []net.Conn {
+	if len(arr) < 2 {
+		return []net.Conn{}
+	}
+
 	arr[index], arr[len(arr)-1] = arr[len(arr)-1], arr[index]
+	arr = arr[:len(arr)-1]
+
+	// correct order
+	if len(arr) > 2 {
+		arr[index], arr[len(arr)-1] = arr[len(arr)-1], arr[index]
+	}
+
 	return arr
 }
