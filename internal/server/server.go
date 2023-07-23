@@ -22,7 +22,7 @@ type customTransport struct {
 }
 
 func (c *customTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	// get connection from pool
+
 	conn, err := c.pool.Get(r.Host)
 	if err != nil {
 		panic(err)
@@ -30,13 +30,13 @@ func (c *customTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 
 	// set tcpConn with the new connection from the pool which will be read in the defaultTransport and use the connection
 	r = r.WithContext(context.WithValue(r.Context(), "tcpConn", conn))
-	resp, err := http.DefaultTransport.RoundTrip(r)
+	resp, err := c.originalTransport.RoundTrip(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// release conenction back to pool
-	defer c.pool.Release(conn, r.Host)
+	go c.pool.Release(conn, r.Host)
 
 	return resp, nil
 }
@@ -48,9 +48,10 @@ func New(listenAddr string, size int, servers []string, poolSize int) *server {
 	pool := connectionPool.New(poolSize)
 	pool.Populate(servers)
 
-	newCustomTransport := customTransport{pool: pool, originalTransport: http.DefaultTransport}
-	client := &http.Client{Transport: &newCustomTransport}
+	newCustomTransport := customTransport{pool: pool, originalTransport: &http.Transport{MaxIdleConnsPerHost: 1, MaxIdleConns: 1, MaxConnsPerHost: 1}}
+	// newCustomTransport := customTransport{pool: pool, originalTransport: http.DefaultTransport}
 
+	client := &http.Client{Transport: &newCustomTransport}
 	return &server{listenAddr: listenAddr, rngBuffer: rng, client: client}
 }
 
@@ -62,7 +63,6 @@ func (s *server) intercept() http.Handler {
 		if err != nil {
 			panic(err)
 		}
-
 		resp, err := s.client.Do(request)
 		if err != nil {
 			panic(err)

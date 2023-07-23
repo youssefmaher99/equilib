@@ -65,7 +65,7 @@ func generateJsonFile(n int, starting_port int) {
 //TODO graceful shutdown to make sure all servers ports are closed
 
 func main() {
-	num_of_servers := flag.Int("servers", 10, "number of servers to spawn on localhost with port starting from 5000")
+	num_of_servers := flag.Int("servers", 5, "number of servers to spawn on localhost with port starting from 5000")
 	flag.Parse()
 	wg := sync.WaitGroup{}
 	wg.Add(*num_of_servers)

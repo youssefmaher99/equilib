@@ -99,11 +99,12 @@ func (p *pool) Populate(hosts []string) error {
 				panic(err)
 			}
 			h_c.connections = append(h_c.connections, conn)
+			p.totalAvailableWarmConnections++
 		}
 		p.connections[host] = &h_c
-		p.totalAvailableWarmConnections++
 	}
 	fmt.Println("----- Pool populated succesfuly -----")
+	fmt.Printf("----- Pool size %d -----\n", p.totalAvailableWarmConnections)
 	return nil
 }
 func (p *pool) OpenNewTcpConnection(host string) (net.Conn, error) {
@@ -119,11 +120,6 @@ func removeSliceElement(arr []net.Conn, index int) []net.Conn {
 
 	arr[index], arr[len(arr)-1] = arr[len(arr)-1], arr[index]
 	arr = arr[:len(arr)-1]
-
-	// correct order
-	if len(arr) > 2 {
-		arr[index], arr[len(arr)-1] = arr[len(arr)-1], arr[index]
-	}
 
 	return arr
 }

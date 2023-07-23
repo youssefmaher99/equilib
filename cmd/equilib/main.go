@@ -75,6 +75,6 @@ func parseIpAndPort(addresses []string) error {
 
 func main() {
 	servers_list := loadServers("servers.json")
-	s := server.New("127.0.0.1:8080", len(servers_list), servers_list, 1)
+	s := server.New("127.0.0.1:8080", len(servers_list), servers_list, 10)
 	log.Fatal(s.Start())
 }
